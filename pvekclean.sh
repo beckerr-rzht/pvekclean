@@ -136,12 +136,13 @@ get_drive_status() {
 # Show current system information
 kernel_info() {
 	# Lastest kernel installed
-	latest_kernel=$(dpkg --list | awk '/proxmox-kernel-.*-pve/{print $2}' | sed -n 's/proxmox-kernel-//p' | sort -V | tail -n 1 | tr -d '[:space:]')
+	latest_kernel=$(dpkg --list | grep -vw Latest | awk '/proxmox-kernel-.*-pve/{print $2}' | sed -n 's/proxmox-kernel-//p' | sort -V | tail -n 1 | tr -d '[:space:]')
 	[ -z "$latest_kernel" ] && latest_kernel="N/A"
 	# Show operating system used
 	printf " ${bold}OS:${reset} $(cat /etc/os-release | grep "PRETTY_NAME" | sed 's/PRETTY_NAME=//g' | sed 's/["]//g' | awk '{print $0}')\n"
 	# Get information about the /boot folder
 	boot_info=($(echo $(df -Ph | grep /boot | tail -1) | sed 's/%//g'))
+ 	[ ${#boot_info[*]} -gt 0 ] || boot_info=($(echo $(df -Ph / | tail -1) | sed 's/%//g'))
 	# Show information about the /boot
 	printf " ${bold}Boot Disk:${reset} ${boot_info[4]}%% full [${boot_info[2]}/${boot_info[1]} used, ${boot_info[3]} free] \n"
 	# Show current kernel in use
@@ -333,7 +334,7 @@ uninstall_program() {
 # PVE Kernel Clean main function
 pve_kernel_clean() {
 	# Find all the PVE kernels on the system
-	kernels=$(dpkg --list | grep -E "(pve-kernel|proxmox-kernel)-[0-9].*" | grep -E "Kernel Image" | grep -vE "${latest_kernel%-pve}|series|transitional" | awk '{print $2}' | sed -n 's/\(pve\|proxmox\)-kernel-\(.*\)/\2/p' | sort -V)
+	kernels=$(dpkg --list | grep -vw Latest | grep -E "(pve-kernel|proxmox-kernel)-[0-9].*" | grep -E "Kernel Image" | grep -vE "${latest_kernel%-pve}|series|transitional" | awk '{print $2}' | sed -n 's/\(pve\|proxmox\)-kernel-\(.*\)/\2/p' | sort -V)
 	# List of kernels that will be removed (adds them as the script goes on)
 	kernels_to_remove=()
 	# Boot drive status
